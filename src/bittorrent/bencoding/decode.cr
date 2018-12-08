@@ -88,11 +88,7 @@ module BitTorrent
           read += @io.read(slice)
         end
 
-        begin
-          String.new(slice, "UTF-8")
-        rescue
-          slice.hexstring
-        end
+        String.new(slice)
       end
     end
 
