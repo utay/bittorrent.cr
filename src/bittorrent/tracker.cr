@@ -1,46 +1,54 @@
 module BitTorrent
   class Tracker
+    getter peer_id : String
+
     def initialize(torrent_file)
       @metadata = BEncoding.decode(
         File.read(torrent_file)
       ).as(Hash(String, BEncoding::Node))
+
+      @peer_id = "-AZ2060-xxxxxxxxxxxx"
     end
 
-    def register
-      infos = @metadata["info"].as(Hash(String, BEncoding::Node))
-      info_hash = OpenSSL::SHA1.hash(BEncoding.encode(infos)).to_slice
+    def peers
+      peers = self.register.as(Hash(String, BEncoding::Node))["peers"].as(String)
 
-      resp = HTTP::Client.get(
-        build_url(
-          @metadata["announce"].as(String),
-          String.new(info_hash),
-          infos["length"]
-        )
-      )
-
-      body = BEncoding.decode(resp.body)
-
-      peers = body.as(Hash(String, BEncoding::Node))["peers"].as(String)
+      res = [] of {String, UInt16}
 
       peers.bytes.in_groups_of(6, filled_up_with = 0.to_u8).map do |peer|
         case peer
         when Array
           ip = Slice.new(peer[0, 4].to_unsafe, 4)
           port = Slice.new(peer[4, 2].to_unsafe, 2)
-          puts ip.map(&.to_i).join('.')
-          puts port
 
-          i = IO::ByteFormat::NetworkEndian.decode(UInt32, ip)
           p = IO::ByteFormat::NetworkEndian.decode(UInt16, port)
 
-          {i, p}
+          res << {ip.map(&.to_i).join('.'), p}
         else
           raise "Peer wasn't an array"
         end
       end
+
+      res
     end
 
-    def peers
+    def info_hash
+      infos = @metadata["info"].as(Hash(String, BEncoding::Node))
+      OpenSSL::SHA1.hash(BEncoding.encode(infos))
+    end
+
+    def register
+      infos = @metadata["info"].as(Hash(String, BEncoding::Node))
+
+      resp = HTTP::Client.get(
+        build_url(
+          @metadata["announce"].as(String),
+          String.new(self.info_hash.to_slice),
+          infos["length"]
+        )
+      )
+
+      BEncoding.decode(resp.body)
     end
 
     private def build_url(endpoint, info_hash, length)
@@ -48,7 +56,7 @@ module BitTorrent
 
       query = {
         "info_hash"  => URI.escape(info_hash),
-        "peer_id"    => "-AZ2060-xxxxxxxxxxxx",
+        "peer_id"    => @peer_id,
         "port"       => "6881",
         "compact"    => "1",
         "downloaded" => "0",

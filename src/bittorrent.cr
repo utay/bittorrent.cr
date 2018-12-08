@@ -22,5 +22,4 @@ spawn do
   end
 end
 
-tracker = BitTorrent::Tracker.new("test.torrent")
-tracker.register
+BitTorrent::Peer.new("test.torrent")
