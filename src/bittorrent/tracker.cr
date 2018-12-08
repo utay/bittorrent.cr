@@ -14,9 +14,10 @@ module BitTorrent
           ip = Slice.new(peer[0, 4].to_unsafe, 4)
           port = Slice.new(peer[4, 2].to_unsafe, 2)
 
-          p = IO::ByteFormat::NetworkEndian.decode(UInt16, port)
-
-          res << {ip.map(&.to_i).join('.'), p}
+          res << {
+            ip.map(&.to_i).join('.'),
+            IO::ByteFormat::NetworkEndian.decode(UInt16, port),
+          }
         else
           raise "Peer wasn't an array"
         end

@@ -22,4 +22,5 @@ spawn do
   end
 end
 
-BitTorrent::Peer.new("test.torrent")
+peer = BitTorrent::Peer.new("test.torrent")
+peer.leech
