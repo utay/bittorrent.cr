@@ -1,13 +1,6 @@
 module BitTorrent
   class Tracker
-    getter peer_id : String
-
-    def initialize(torrent_file)
-      @metadata = BEncoding.decode(
-        File.read(torrent_file)
-      ).as(Hash(String, BEncoding::Node))
-
-      @peer_id = "-AZ2060-xxxxxxxxxxxx"
+    def initialize(@torrent : Torrent, @peer_id : String)
     end
 
     def peers
@@ -32,37 +25,23 @@ module BitTorrent
       res
     end
 
-    def info_hash
-      infos = @metadata["info"].as(Hash(String, BEncoding::Node))
-      OpenSSL::SHA1.hash(BEncoding.encode(infos))
-    end
-
     def register
-      infos = @metadata["info"].as(Hash(String, BEncoding::Node))
-
-      resp = HTTP::Client.get(
-        build_url(
-          @metadata["announce"].as(String),
-          String.new(self.info_hash.to_slice),
-          infos["length"]
-        )
-      )
-
+      resp = HTTP::Client.get(self.url)
       BEncoding.decode(resp.body)
     end
 
-    private def build_url(endpoint, info_hash, length)
-      url = URI.parse(endpoint)
+    private def url
+      url = URI.parse(@torrent.announce)
 
       query = {
-        "info_hash"  => URI.escape(info_hash),
+        "info_hash"  => URI.escape(String.new(@torrent.info_hash.to_slice)),
         "peer_id"    => @peer_id,
         "port"       => "6881",
         "compact"    => "1",
         "downloaded" => "0",
         "event"      => "started",
         "uploaded"   => "0",
-        "left"       => length.to_s,
+        "left"       => @torrent.length.to_s,
       }
 
       url.query = query.map { |key, value|
