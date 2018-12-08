@@ -1,0 +1,13 @@
+name: bittorrent
+version: 0.1.0
+
+authors:
+  - Yannick Utard <yannickutard@gmail.com>
+
+targets:
+  bittorrent:
+    main: src/bittorrent.cr
+
+crystal: 0.27.0
+
+license: MIT
