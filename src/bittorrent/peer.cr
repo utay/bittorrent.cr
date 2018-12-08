@@ -15,10 +15,10 @@ module BitTorrent
       send_message(INTERESTED)
       receive_message
 
-      send_message(REQUEST, 0, 0, torrent.length)
+      send_message(REQUEST, 0, 0, torrent.length.to_i32)
       piece = receive_message["block"].as(Bytes)
 
-      if OpenSSL::SHA1.hash(String.new(piece)) == OpenSSL::SHA1.hash(torrent.pieces)
+      if String.new(OpenSSL::SHA1.hash(String.new(piece)).to_slice) == torrent.pieces
         puts "SHA1 verified"
       else
         raise "SHA1 mismatch"
@@ -58,14 +58,15 @@ module BitTorrent
 
     def send_message(message)
       @client.write_bytes(message[0], IO::ByteFormat::BigEndian)
-      @client.write(Slice[message[1].to_u8])
+      @client.write_byte(message[1])
     end
 
     def send_message(message, *payload)
       self.send_message(message)
-      payload.each { |i|
-        @client.write_bytes(i, IO::ByteFormat::BigEndian)
-      }
+      payload.each do |b|
+        puts typeof(b)
+        @client.write_bytes(b, IO::ByteFormat::BigEndian)
+      end
     end
 
     def receive_message
@@ -81,9 +82,14 @@ module BitTorrent
         @client.read_fully(slice)
 
         {"message_id" => message_id, "block" => slice, "index" => index, "start" => start}
+        # elsif message_id == 5
+        #  puts message_id
+        #  index = @client.read_bytes(Int32, IO::ByteFormat::NetworkEndian)
+        #  {"message_id" => message_id, "index" => index}
       else
         slice = Bytes.new(length - 1)
         @client.read(slice)
+        puts slice
 
         {"message_id" => message_id, "block" => slice}
       end

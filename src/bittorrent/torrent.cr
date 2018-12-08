@@ -19,7 +19,7 @@ module BitTorrent
     end
 
     def name
-      @metadata["name"].as(String)
+      self.infos["name"].as(String)
     end
 
     def length
