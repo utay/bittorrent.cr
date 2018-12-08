@@ -2,30 +2,31 @@ module BitTorrent
   class Peer
     def initialize(torrent_file : String)
       @peer_id = "-AZ2060-xxxxxxxxxxxx"
+
       torrent = Torrent.new(torrent_file)
       tracker = Tracker.new(torrent, @peer_id)
       peers = tracker.peers
       @client = TCPSocket.new(peers[1][0], peers[1][1])
       handshake(torrent.info_hash, @peer_id)
 
-      # send_message(0x0001, 1)
-      # receive_message
+      send_message(UNCHOKE)
+      receive_message
 
-      # send_message(0x0001, 2)
-      # receive_message
+      send_message(INTERESTED)
+      receive_message
 
-      # send_message(0x0013, 6, 0, 0, tf.length)
-      # piece = receive_message.fetch("block").as(Bytes)
+      send_message(REQUEST, 0, 0, torrent.length)
+      piece = receive_message["block"].as(Bytes)
 
-      # if OpenSSL::SHA1.hash(piece).map(&.to_s(16)) == tf.pieces.map(&.to_s(16))
-      #  puts "SHA1 verified"
-      # else
-      #  raise "SHA1 mismatch"
-      # end
+      if OpenSSL::SHA1.hash(String.new(piece)) == OpenSSL::SHA1.hash(torrent.pieces)
+        puts "SHA1 verified"
+      else
+        raise "SHA1 mismatch"
+      end
 
-      # puts "Done"
+      puts "Done"
 
-      # File.write(tf.name, piece)
+      File.write(torrent.name, piece)
     end
 
     def handshake(info_hash : StaticArray(UInt8, 20), peer_id : String)
@@ -54,41 +55,42 @@ module BitTorrent
         raise "info hash didn't match"
       end
     end
-  end
 
-  def send_message(len, id)
-    @client.write_bytes(len, IO::ByteFormat::BigEndian)
-    @client.write(Slice[id.to_u8])
-  end
-
-  def send_message(len, id, *payload)
-    self.send_message(len, id)
-    payload.each { |i|
-      @client.write_bytes(i, IO::ByteFormat::BigEndian)
-    }
-  end
-
-  def receive_message
-    length = @client.read_bytes(Int32, IO::ByteFormat::NetworkEndian)
-    puts "got block of length #{length}"
-    message_id = @client.read_byte
-
-    if message_id == 7
-      index = @client.read_bytes(Int32, IO::ByteFormat::NetworkEndian)
-      start = @client.read_bytes(Int32, IO::ByteFormat::NetworkEndian)
-
-      slice = Bytes.new(length - 9)
-      @client.read_fully(slice)
-
-      {"message_id" => message_id, "block" => slice, "index" => index, "start" => start}
-    else
-      slice = Bytes.new(length - 1)
-      @client.read(slice)
-      {"message_id" => message_id, "block" => slice}
+    def send_message(message)
+      @client.write_bytes(message[0], IO::ByteFormat::BigEndian)
+      @client.write(Slice[message[1].to_u8])
     end
-  end
 
-  def close
-    @client.close
+    def send_message(message, *payload)
+      self.send_message(message)
+      payload.each { |i|
+        @client.write_bytes(i, IO::ByteFormat::BigEndian)
+      }
+    end
+
+    def receive_message
+      length = @client.read_bytes(Int32, IO::ByteFormat::NetworkEndian)
+      puts "got block of length #{length}"
+      message_id = @client.read_byte
+
+      if message_id == 7
+        index = @client.read_bytes(Int32, IO::ByteFormat::NetworkEndian)
+        start = @client.read_bytes(Int32, IO::ByteFormat::NetworkEndian)
+
+        slice = Bytes.new(length - 9)
+        @client.read_fully(slice)
+
+        {"message_id" => message_id, "block" => slice, "index" => index, "start" => start}
+      else
+        slice = Bytes.new(length - 1)
+        @client.read(slice)
+
+        {"message_id" => message_id, "block" => slice}
+      end
+    end
+
+    def close
+      @client.close
+    end
   end
 end
