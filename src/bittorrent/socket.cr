@@ -1,7 +1,9 @@
 module BitTorrent
   class Socket
+    alias BigEndian = IO::ByteFormat::BigEndian
+
     def initialize(@ip : String, @port : UInt16)
-      @client = TCPSocket.new(@ip, @port)
+      @socket = TCPSocket.new(@ip, @port)
     end
 
     def handshake(info_hash : StaticArray(UInt8, 20), peer_id : String)
@@ -13,18 +15,18 @@ module BitTorrent
         raise "peer_id must be 20 bytes"
       end
 
-      @client.write(Slice[19.to_u8])
-      @client.write("BitTorrent protocol".to_slice)
-      @client.write(Slice(UInt8).new 8)
-      @client.write(info_hash.to_slice)
-      @client.write(peer_id.to_slice)
+      @socket.write(Slice[19.to_u8])
+      @socket.write("BitTorrent protocol".to_slice)
+      @socket.write(Slice(UInt8).new(8))
+      @socket.write(info_hash.to_slice)
+      @socket.write(peer_id.to_slice)
 
       client_info_hash = Bytes.new(20)
-      @client.read_byte
-      @client.read_string(19)
-      @client.skip(8)
-      @client.read(client_info_hash)
-      peer_id = @client.read_string(20)
+      @socket.read_byte
+      @socket.read_string(19)
+      @socket.skip(8)
+      @socket.read(client_info_hash)
+      peer_id = @socket.read_string(20)
 
       if client_info_hash != info_hash.to_slice
         raise "info hash didn't match"
@@ -32,43 +34,39 @@ module BitTorrent
     end
 
     def send_message(message)
-      @client.write_bytes(message[0])
-      @client.write_byte(message[1])
+      @socket.write_bytes(message[0], BigEndian)
+      @socket.write_byte(message[1])
     end
 
     def send_message(message, *payload)
       self.send_message(message)
       payload.each do |b|
-        @client.write_bytes(b, IO::ByteFormat::BigEndian)
+        @socket.write_bytes(b, BigEndian)
       end
     end
 
     def receive_message
-      length = @client.read_bytes(Int32, IO::ByteFormat::NetworkEndian)
-      puts "length #{length}"
-      message_id = @client.read_byte
-      puts message_id
+      length = @socket.read_bytes(Int32, BigEndian)
+      message_id = @socket.read_byte
 
       if message_id == 7
-        index = @client.read_bytes(Int32, IO::ByteFormat::NetworkEndian)
-        start = @client.read_bytes(Int32, IO::ByteFormat::NetworkEndian)
+        index = @socket.read_bytes(Int32, BigEndian)
+        start = @socket.read_bytes(Int32, BigEndian)
 
         slice = Bytes.new(length - 9)
-        @client.read_fully(slice)
+        @socket.read_fully(slice)
 
         {"message_id" => message_id, "block" => slice, "index" => index, "start" => start}
       else
-        puts "lol"
         slice = Bytes.new(length - 1)
-        @client.read(slice)
-        puts slice
+        @socket.read(slice)
 
         {"message_id" => message_id, "block" => slice}
       end
     end
 
     def close
-      @client.close
+      @socket.close
     end
   end
 end
