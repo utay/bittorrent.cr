@@ -1,4 +1,4 @@
-require "./bittorrent"
+require "../bittorrent"
 
 # def handle_client(client)
 #   message = client.gets
@@ -12,5 +12,5 @@ require "./bittorrent"
 #   end
 # end
 
-peer = BitTorrent::Peer.new("test.torrent")
+peer = BitTorrent::Peer.new("/home/utay/torrent/test.torrent")
 peer.leech

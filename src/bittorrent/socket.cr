@@ -41,7 +41,7 @@ module BitTorrent
     def send_message(message, *payload)
       self.send_message(message)
       payload.each do |b|
-        @socket.write_bytes(b, BigEndian)
+        @socket.write_bytes(b.to_i32, BigEndian)
       end
     end
 

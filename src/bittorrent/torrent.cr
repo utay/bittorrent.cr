@@ -6,16 +6,16 @@ module BitTorrent
       ).as(Hash(String, BEncoding::Node))
     end
 
-    def infos
-      @metadata["info"].as(Hash(String, BEncoding::Node))
-    end
-
     def announce
       @metadata["announce"].as(String)
     end
 
     def info_hash
       OpenSSL::SHA1.hash(BEncoding.encode(self.infos))
+    end
+
+    def hash(piece_index)
+      String.new(self.hash.to_slice[piece_index * 20, 20])
     end
 
     def name
@@ -26,8 +26,16 @@ module BitTorrent
       self.infos["length"].as(Int64)
     end
 
-    def pieces
+    def piece_length
+      self.infos["piece length"].as(Int64)
+    end
+
+    private def hash
       self.infos["pieces"].as(String)
+    end
+
+    private def infos
+      @metadata["info"].as(Hash(String, BEncoding::Node))
     end
   end
 end

@@ -17,7 +17,7 @@ module BitTorrent
       end
 
       def encode(node : String)
-        @io << node.size
+        @io << node.to_slice.size
         @io << ARRAY_DIVIDER
         @io << node
       end
