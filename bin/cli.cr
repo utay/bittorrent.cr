@@ -1,3 +1,4 @@
+require "option_parser"
 require "../bittorrent"
 
 # def handle_client(client)
@@ -12,5 +13,29 @@ require "../bittorrent"
 #   end
 # end
 
-peer = BitTorrent::Peer.new("/home/utay/torrent/test.torrent")
-peer.leech
+options = {} of Symbol => Bool
+
+OptionParser.parse! do |parser|
+  parser.banner = "Usage: bittorrent [arguments]"
+
+  parser.on("-d", "--dump-peers", "Dumps the peers of this torrent") do
+    options[:dump] = true
+  end
+
+  parser.on("-h", "--help", "Show this help") do
+    puts parser
+    exit(0)
+  end
+
+  parser.invalid_option do |flag|
+    STDERR.puts "ERROR: #{flag} is not a valid option."
+    STDERR.puts parser
+    exit(1)
+  end
+end
+
+if options[:dumps]?
+else
+  peer = BitTorrent::Peer.new("/home/utay/torrent/test.torrent")
+  peer.leech
+end

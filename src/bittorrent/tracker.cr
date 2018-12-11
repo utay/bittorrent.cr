@@ -1,4 +1,7 @@
 module BitTorrent
+  alias PeerAddress = {String, UInt16}
+  alias PeerList = Array(PeerAddress)
+
   class Tracker
     def initialize(@torrent : Torrent, @peer_id : String)
     end
@@ -6,7 +9,7 @@ module BitTorrent
     def peers
       peers = self.register.as(Hash(String, BEncoding::Node))["peers"].as(String)
 
-      res = [] of {String, UInt16}
+      res = [] of PeerAddress
 
       peers.bytes.in_groups_of(6, filled_up_with = 0.to_u8).map do |peer|
         case peer
