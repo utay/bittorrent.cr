@@ -14,6 +14,7 @@ module BitTorrent
       @tracker = Tracker.new(@torrent, @peer_id)
       @length = @torrent.length.as(Int64)
       @end = Channel(Nil).new
+      @bar = ProgressBar.new
 
       length = @torrent.length
       piece_length = @torrent.piece_length
@@ -23,6 +24,9 @@ module BitTorrent
       else
         nb_pieces = (length / piece_length) + 1
       end
+
+      puts nb_pieces
+      @bar.width = nb_pieces.to_i32
 
       @cache = Array(IO::Memory).new(nb_pieces, IO::Memory.new)
     end
@@ -78,7 +82,6 @@ module BitTorrent
       piece = IO::Memory.new(@torrent.piece_length)
       while length > 0
         block_size = Math.min(REQUEST_BLOCK_SIZE, length)
-        puts "piece_index #{piece_index} idx #{idx} block_size #{block_size}"
         socket.send_message(REQUEST, piece_index, idx, block_size)
         data = socket.receive_message["block"].as(Bytes)
         piece.write(data)
@@ -86,6 +89,7 @@ module BitTorrent
         length -= block_size
       end
 
+      @bar.inc
       @cache[piece_index] = piece
       @length -= @torrent.piece_length
 
