@@ -55,8 +55,8 @@ module BitTorrent
     end
 
     private def download_piece(socket, piece_index)
-      space_left = @torrent.length - piece_index * @torrent.piece_length
-      length = Math.min(@torrent.piece_length, space_left)
+      data_left_length = @torrent.length - piece_index * @torrent.piece_length
+      length = Math.min(@torrent.piece_length, data_left_length)
       idx = 0
       piece = IO::Memory.new(@torrent.piece_length)
       while length > 0
