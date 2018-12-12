@@ -1,22 +1,28 @@
-# bittorrent
+# bittorrent.cr
 
-TODO: Write a description here
+BitTorrent library and CLI written in Crystal.
+
+This project is **still ongoing**.
 
 ## Installation
 
-TODO: Write installation instructions here
+Add this to your application's shard.yml:
 
-## Usage
+```
+dependencies:
+  torrent:
+    github: utay/bittorrent
+```
 
-TODO: Write usage instructions here
+## TODO
 
-## Development
-
-TODO: Write development instructions here
+- [ ] Leech multi files torrent
+- [ ] Seed
+- [ ] Better CLI
 
 ## Contributing
 
-1. Fork it (<https://github.com/your-github-user/bittorrent/fork>)
+1. Fork it (<https://github.com/utay/bittorrent.cr/fork>)
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
@@ -24,4 +30,4 @@ TODO: Write development instructions here
 
 ## Contributors
 
-- [Yannick Utard](https://github.com/your-github-user) - creator and maintainer
+- [Yannick Utard](https://github.com/utay) - creator and maintainer
